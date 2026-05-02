@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h1>Bonjour <span id="userPrenom">conducteur</span></h1>
+                <p class="text-muted">Gérez vos trajets et vos passagers</p>
+            </div>
+            <div class="actions">
+                <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+                <a href="creer-trajet.html" class="btn btn-primary">Nouveau trajet</a>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value" id="kpiActifs">0</div>
+                <div class="kpi-label">Trajets actifs</div>
+            </div>
+            <div class="kpi-card yellow">
+                <div class="kpi-value" id="kpiDemandes">0</div>
+                <div class="kpi-label">Demandes en attente</div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-value" id="kpiNote">0.0</div>
+                <div class="kpi-label">Note moyenne</div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-value" id="kpiRevenus">0 DT</div>
+                <div class="kpi-label">Revenus ce mois</div>
+            </div>
+        </div>
+
+        <div class="grid grid-2">
+            <div class="admin-card">
+                <h3>Mes prochains trajets</h3>
+                <div id="mesTrajets"></div>
+            </div>
+
+            <div class="admin-card">
+                <h3>Dernières demandes</h3>
+                <div id="mesDemandes"></div>
+                <a href="demandes.html" class="btn btn-outline btn-block mt-16">Voir toutes les demandes</a>
+            </div>
+        </div>
+
+        <div class="admin-card mt-24">
+            <h3>Activité de la semaine</h3>
+            <div class="bar-chart">
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Lun</span></div>
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Mar</span></div>
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Mer</span></div>
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Jeu</span></div>
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Ven</span></div>
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Sam</span></div>
+                <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Dim</span></div>
+            </div>
+            <p class="text-center text-muted mt-24" style="font-size:13px;">Nombre de trajets par jour</p>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'home.html');
+const u = Auth.user();
+if (u) document.getElementById('userPrenom').textContent = u.prenom;
+
+const trajets = MOCK.trajets || [];
+const reservs = MOCK.reservations || [];
+
+const trajetsEl = document.getElementById('mesTrajets');
+if (trajets.length === 0) {
+    trajetsEl.innerHTML = '<p class="text-muted" style="padding:16px 0;">Aucun trajet planifié.</p>';
+} else {
+    trajetsEl.innerHTML = trajets.slice(0,3).map(t => `
+        <div class="flex justify-between items-center mb-16" style="padding:12px; background:var(--bg-gray); border-radius:10px;">
+            <div>
+                <div class="fw-bold">${t.depart} → ${t.destination}</div>
+                <div class="text-muted" style="font-size:12px;">${formatDate(t.dateHeure)} · ${t.placesDispo}/${t.placesTotal} places</div>
+            </div>
+            <span class="status-tag status-${t.statut}">${t.statut}</span>
+        </div>
+    `).join('');
+}
+
+const demandesEl = document.getElementById('mesDemandes');
+if (reservs.length === 0) {
+    demandesEl.innerHTML = '<p class="text-muted" style="padding:16px 0;">Aucune demande en attente.</p>';
+} else {
+    demandesEl.innerHTML = reservs.slice(0,3).map(r => {
+        const t = trajets.find(x => x.id === r.trajetId);
+        return `
+        <div class="flex justify-between items-center mb-16" style="padding:12px; background:var(--bg-gray); border-radius:10px;">
+            <div>
+                <div class="fw-bold">${r.passagerNom}</div>
+                <div class="text-muted" style="font-size:12px;">${t ? t.depart+' → '+t.destination : ''}</div>
+            </div>
+            <span class="status-tag status-${r.statut}">${r.statut.replace('_',' ')}</span>
+        </div>`;
+    }).join('');
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passagers acceptés | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Passagers acceptés</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-value" id="kMois">0</div><div class="kpi-label">Passagers ce mois</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="kEnCours">0</div><div class="kpi-label">Trajets en cours</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="kSatisfaction">0.0</div><div class="kpi-label">Satisfaction</div></div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Liste des passagers acceptés</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Passager</th>
+                        <th>Trajet</th>
+                        <th>Date / Heure</th>
+                        <th>Téléphone</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tb"></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'passagers.html');
+
+const acceptes = (MOCK.reservations || []).filter(r => r.statut === 'ACCEPTE');
+const tb = document.getElementById('tb');
+
+if (acceptes.length === 0) {
+    tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center" style="padding:30px;">Aucun passager accepté pour le moment.</td></tr>';
+} else {
+    tb.innerHTML = acceptes.map(r => {
+        const t = (MOCK.trajets || []).find(x => x.id === r.trajetId);
+        const initials = r.passagerNom.split(' ').map(w=>w[0]).join('').toUpperCase();
+        return `
+        <tr>
+            <td>
+                <div class="flex items-center gap-16">
+                    <div style="width:40px; height:40px; background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900;">${initials}</div>
+                    <strong>${r.passagerNom}</strong>
+                </div>
+            </td>
+            <td>${t ? t.depart + ' → ' + t.destination : '—'}</td>
+            <td>${t ? formatDate(t.dateHeure) : '—'}</td>
+            <td>—</td>
+            <td><span class="status-tag status-ACCEPTE">Accepté</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="location.href='messagerie.html'">Message</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+</script>
+
+</body>
+</html>

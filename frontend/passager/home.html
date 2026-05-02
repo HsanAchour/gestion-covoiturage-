@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h1>Bonjour <span id="userPrenom">étudiant</span></h1>
+                <p class="text-muted">Prêt pour un nouveau trajet ?</p>
+            </div>
+            <div class="actions">
+                <a href="notifications.html" class="notification-bell">
+                    <span class="bell-icon">•</span><span class="dot"></span>
+                </a>
+                <a href="trajets.html" class="btn btn-primary">Chercher un trajet</a>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value" id="kpiReservations">0</div>
+                <div class="kpi-label">Réservations actives</div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-value" id="kpiTrajets">0</div>
+                <div class="kpi-label">Trajets effectués</div>
+            </div>
+            <div class="kpi-card yellow">
+                <div class="kpi-value" id="kpiEconomies">0 DT</div>
+                <div class="kpi-label">Économies réalisées</div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-value" id="kpiCo2">0 kg</div>
+                <div class="kpi-label">CO₂ économisé</div>
+            </div>
+        </div>
+
+        <!-- Recherche rapide -->
+        <div class="search-box">
+            <h3 class="mb-16">Recherche rapide</h3>
+            <form class="search-grid" onsubmit="event.preventDefault(); rechercher();">
+                <div>
+                    <label class="form-label">Départ</label>
+                    <input id="depart" type="text" class="form-control" placeholder="Ex : Tunis Centre">
+                </div>
+                <div>
+                    <label class="form-label">Destination</label>
+                    <input id="destination" type="text" class="form-control" value="IHEC Carthage">
+                </div>
+                <div>
+                    <label class="form-label">Date</label>
+                    <input id="date" type="date" class="form-control">
+                </div>
+                <button class="btn btn-primary">Rechercher</button>
+            </form>
+        </div>
+
+        <!-- Trajets recommandés -->
+        <div class="flex justify-between items-center mb-16">
+            <h2>Trajets disponibles</h2>
+            <a href="trajets.html" class="text-primary fw-bold">Voir tout</a>
+        </div>
+
+        <div class="grid grid-2" id="trajetsList"></div>
+    </main>
+</div>
+
+<button class="sos-btn" onclick="triggerSOS()">SOS</button>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('PASSAGER');
+renderSidebar('sidebar', 'PASSAGER', 'home.html');
+const u = Auth.user();
+if (u) document.getElementById('userPrenom').textContent = u.prenom;
+
+function rechercher() {
+    const params = new URLSearchParams({
+        depart: document.getElementById('depart').value,
+        destination: document.getElementById('destination').value,
+        date: document.getElementById('date').value
+    });
+    window.location.href = 'trajets.html?' + params.toString();
+}
+
+function renderTrajets() {
+    const list = MOCK.trajets.slice(0, 4);
+    if (list.length === 0) {
+        document.getElementById('trajetsList').innerHTML =
+            '<p class="text-muted" style="grid-column:1/-1; text-align:center; padding:40px;">Aucun trajet disponible pour le moment.</p>';
+        return;
+    }
+    document.getElementById('trajetsList').innerHTML = list.map(t => `
+        <div class="trajet-card">
+            <div class="header">
+                <div class="driver">
+                    <div class="avatar">${t.conducteurNom.split(' ').map(w=>w[0]).join('').toUpperCase()}</div>
+                    <div>
+                        <div class="driver-name">${t.conducteurNom}</div>
+                        <div class="stars">${'★'.repeat(Math.round(t.note))}${'☆'.repeat(5-Math.round(t.note))} <span class="text-muted" style="font-size:12px;">(${t.note})</span></div>
+                    </div>
+                </div>
+                <div class="price">${t.prix} DT</div>
+            </div>
+            <div class="route">
+                <span>${t.depart}</span>
+                <span class="arrow">→</span>
+                <span>${t.destination}</span>
+            </div>
+            <div class="details">
+                <span class="tag">${formatDate(t.dateHeure)}</span>
+                <span class="tag">${t.placesDispo}/${t.placesTotal} places</span>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary btn-sm" onclick="reserver(${t.id})">Réserver</button>
+                <button class="btn btn-outline btn-sm" onclick="voirDetails(${t.id})">Détails</button>
+            </div>
+        </div>
+    `).join('');
+}
+renderTrajets();
+
+function reserver(id) { toast('Demande de réservation envoyée.', 'success'); }
+function voirDetails(id) { window.location.href = 'trajets.html?id=' + id; }
+</script>
+
+</body>
+</html>

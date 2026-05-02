@@ -1,0 +1,20 @@
+# IHEC Ride - Backend PHP
+# Toutes les requêtes vers ce dossier sont routées vers index.php
+# afin que le routeur central puisse dispatcher vers les contrôleurs.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Si la requête correspond à un fichier ou dossier physique, on sert tel quel.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Sinon, on passe la main à index.php (le router conserve la query string).
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Empêche le listing du dossier
+Options -Indexes
+
+# Force UTF-8 pour les fichiers PHP
+AddDefaultCharset UTF-8

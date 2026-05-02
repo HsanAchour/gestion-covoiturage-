@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conducteurs | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-theme">
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Conducteurs</h1>
+            <input type="search" id="searchInput" class="form-control" placeholder="Rechercher un conducteur" style="width:280px;" oninput="render()">
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-value" id="total">0</div><div class="kpi-label">Conducteurs</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="actifs">0</div><div class="kpi-label">Actifs</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="trajetsTot">0</div><div class="kpi-label">Trajets totaux</div></div>
+            <div class="kpi-card purple"><div class="kpi-value" id="noteAvg">0.0</div><div class="kpi-label">Note moyenne</div></div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Top conducteurs du mois</h3>
+            <div class="grid grid-3" id="topConducteurs"></div>
+        </div>
+
+        <div class="admin-card mt-24">
+            <h3>Liste des conducteurs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Conducteur</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Trajets</th>
+                        <th>Note</th>
+                        <th>Revenus</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tb"></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('ADMIN');
+renderSidebar('sidebar', 'ADMIN', 'conducteurs.html');
+
+function render() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase();
+    const list = (MOCK.utilisateurs || []).filter(u => u.role === 'CONDUCTEUR' &&
+        (u.nom.toLowerCase().includes(q) || u.prenom.toLowerCase().includes(q)));
+
+    document.getElementById('total').textContent = list.length;
+    document.getElementById('actifs').textContent = list.filter(c => c.statut === 'ACTIF').length;
+    document.getElementById('trajetsTot').textContent = 0;
+    const avg = list.length ? list.reduce((s,c) => s + c.noteMoyenne, 0) / list.length : 0;
+    document.getElementById('noteAvg').textContent = avg.toFixed(1);
+
+    const topEl = document.getElementById('topConducteurs');
+    if (list.length === 0) {
+        topEl.innerHTML = '<p class="text-muted" style="grid-column:1/-1; padding:20px;">Aucun conducteur inscrit.</p>';
+    } else {
+        topEl.innerHTML = list.slice(0,3).map((c, idx) => {
+            const rank = idx + 1;
+            return `
+            <div style="padding:20px; background:var(--bg-light); border-radius:12px; text-align:center; border:1px solid var(--border);">
+                <div class="text-muted" style="font-size:14px;">#${rank}</div>
+                <div style="width:64px; height:64px; background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white; border-radius:50%; margin:12px auto; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:22px;">${(c.prenom[0]+c.nom[0]).toUpperCase()}</div>
+                <div class="fw-bold">${c.prenom} ${c.nom}</div>
+                <div class="stars" style="justify-content:center;">${'★'.repeat(Math.round(c.noteMoyenne))}${'☆'.repeat(5-Math.round(c.noteMoyenne))}</div>
+                <div class="text-muted mt-8" style="font-size:12px;">0 trajet · 0 DT</div>
+            </div>`;
+        }).join('');
+    }
+
+    const tb = document.getElementById('tb');
+    if (list.length === 0) {
+        tb.innerHTML = '<tr><td colspan="9" class="text-muted text-center" style="padding:30px;">Aucun conducteur inscrit.</td></tr>';
+    } else {
+        tb.innerHTML = list.map(c => `
+            <tr>
+                <td>#${c.id}</td>
+                <td><strong>${c.prenom} ${c.nom}</strong></td>
+                <td>${c.email}</td>
+                <td>${c.telephone}</td>
+                <td>0</td>
+                <td><span class="stars">${'★'.repeat(Math.round(c.noteMoyenne))}</span> ${c.noteMoyenne}</td>
+                <td>0 DT</td>
+                <td><span class="status-tag status-${c.statut}">${c.statut}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline">Voir</button>
+                    <button class="btn btn-sm btn-danger" onclick="bannir(${c.id})">Bannir</button>
+                </td>
+            </tr>`).join('');
+    }
+}
+
+function bannir(id) {
+    if (!confirm('Bannir ce conducteur ?')) return;
+    const c = MOCK.utilisateurs.find(u => u.id === id);
+    if (c) c.statut = c.statut === 'BANNI' ? 'ACTIF' : 'BANNI';
+    render();
+}
+
+render();
+</script>
+
+</body>
+</html>

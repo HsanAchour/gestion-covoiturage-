@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes passagers | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Demandes des passagers</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <div class="alert alert-info mb-24">
+            Acceptez ou refusez les demandes de réservation. Les passagers acceptés seront automatiquement ajoutés au groupe du trajet.
+        </div>
+
+        <div class="grid" id="demandesList"></div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'demandes.html');
+
+function render() {
+    const list = MOCK.reservations || [];
+    const el = document.getElementById('demandesList');
+    if (list.length === 0) {
+        el.innerHTML = '<p class="text-center text-muted" style="padding:40px;">Aucune demande pour le moment.</p>';
+        return;
+    }
+    el.innerHTML = list.map(r => {
+        const t = (MOCK.trajets || []).find(x => x.id === r.trajetId);
+        if (!t) return '';
+        const initials = r.passagerNom.split(' ').map(w=>w[0]).join('').toUpperCase();
+        return `
+            <div class="admin-card">
+                <div class="flex justify-between items-center mb-16">
+                    <div class="flex items-center gap-16">
+                        <div class="avatar" style="width:56px; height:56px; background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px;">${initials}</div>
+                        <div>
+                            <div class="fw-bold" style="font-size:17px;">${r.passagerNom}</div>
+                            <div class="text-muted" style="font-size:13px;">Demande reçue : ${formatDate(r.createdAt)}</div>
+                        </div>
+                    </div>
+                    <span class="status-tag status-${r.statut}">${r.statut.replace('_',' ')}</span>
+                </div>
+
+                <div style="padding:14px; background:var(--bg-gray); border-radius:10px; margin-bottom:16px;">
+                    <div class="fw-bold mb-8">${t.depart} → ${t.destination}</div>
+                    <div class="flex gap-24 text-muted" style="font-size:13px;">
+                        <span>${formatDate(t.dateHeure)}</span>
+                        <span>${t.prix} DT</span>
+                        <span>${t.placesDispo}/${t.placesTotal} places libres</span>
+                    </div>
+                </div>
+
+                ${r.statut === 'EN_ATTENTE' ? `
+                <div class="flex gap-16">
+                    <button class="btn btn-success btn-block" onclick="accepter(${r.id})">Accepter</button>
+                    <button class="btn btn-danger btn-block" onclick="refuser(${r.id})">Refuser</button>
+                    <button class="btn btn-outline" onclick="messager(${r.passagerId})">Message</button>
+                </div>
+                ` : r.statut === 'ACCEPTE' ? `
+                <div class="alert alert-success" style="margin:0;">Demande acceptée · passager ajouté au groupe du trajet.</div>
+                ` : `
+                <div class="alert alert-danger" style="margin:0;">Demande refusée.</div>
+                `}
+            </div>
+        `;
+    }).join('');
+}
+
+function accepter(id) {
+    const r = MOCK.reservations.find(x => x.id === id);
+    if (r) r.statut = 'ACCEPTE';
+    alert('Demande acceptée.');
+    render();
+}
+
+function refuser(id) {
+    if (!confirm('Confirmer le refus de cette demande ?')) return;
+    const r = MOCK.reservations.find(x => x.id === id);
+    if (r) r.statut = 'REFUSE';
+    render();
+}
+
+function messager(uid) { location.href = 'messagerie.html?user=' + uid; }
+
+render();
+</script>
+
+</body>
+</html>

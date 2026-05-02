@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Évaluations | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Évaluations</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <!-- Note globale -->
+        <div class="admin-card" style="text-align:center; background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-dark)); color:white;">
+            <h3 style="color:white; border-color:var(--ihec-yellow);">Votre note globale</h3>
+            <div style="font-size:72px; font-weight:900; color:var(--ihec-yellow); line-height:1;" id="noteGlobale">0.0</div>
+            <div class="stars" style="font-size:28px; justify-content:center;" id="starsGlobale">☆☆☆☆☆</div>
+            <div style="opacity:.9; margin-top:8px;"><span id="nbEvals">0</span> évaluation(s) reçue(s)</div>
+        </div>
+
+        <!-- KPI -->
+        <div class="kpi-grid mt-24">
+            <div class="kpi-card"><div class="kpi-value" id="kTrajets">0</div><div class="kpi-label">Trajets complétés</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="kPassagers">0</div><div class="kpi-label">Passagers transportés</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="kRevenus">0 DT</div><div class="kpi-label">Revenus totaux</div></div>
+            <div class="kpi-card purple"><div class="kpi-value" id="kCo2">0 kg</div><div class="kpi-label">CO₂ économisé</div></div>
+        </div>
+
+        <!-- Répartition des notes -->
+        <div class="grid grid-2 mt-24">
+            <div class="admin-card">
+                <h3>Répartition des notes</h3>
+                <div style="display:flex; flex-direction:column; gap:12px;" id="distribNotes">
+                    <div><div class="flex justify-between mb-8"><span>5 étoiles</span><strong>0 (0%)</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>4 étoiles</span><strong>0 (0%)</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>3 étoiles</span><strong>0 (0%)</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>2 étoiles</span><strong>0 (0%)</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>1 étoile</span><strong>0 (0%)</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <h3>Critères d'évaluation</h3>
+                <div class="flex flex-col gap-16">
+                    <div><div class="flex justify-between mb-8"><span>Ponctualité</span><strong>0.0 / 5</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>Sécurité de conduite</span><strong>0.0 / 5</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>Courtoisie</span><strong>0.0 / 5</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                    <div><div class="flex justify-between mb-8"><span>État du véhicule</span><strong>0.0 / 5</strong></div><div class="progress"><div class="progress-bar" style="width:0%;"></div></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commentaires récents -->
+        <div class="admin-card mt-24">
+            <h3>Commentaires récents</h3>
+            <div id="commBody"></div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'evaluations.html');
+
+const evals = MOCK.evaluations || [];
+const commBody = document.getElementById('commBody');
+
+if (evals.length === 0) {
+    commBody.innerHTML = '<p class="text-muted" style="padding:20px 0;">Aucun commentaire reçu pour le moment.</p>';
+} else {
+    commBody.innerHTML = evals.map(e => `
+        <div style="padding:16px; border-bottom:1px solid var(--border);">
+            <div class="flex justify-between mb-8">
+                <div class="flex items-center gap-16">
+                    <div style="width:40px; height:40px; background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900;">${e.evaluateurNom.split(' ').map(w=>w[0]).join('').toUpperCase()}</div>
+                    <div>
+                        <strong>${e.evaluateurNom}</strong>
+                        <div class="text-muted" style="font-size:12px;">${e.date}</div>
+                    </div>
+                </div>
+                <span class="stars">${'★'.repeat(e.note)}${'☆'.repeat(5-e.note)}</span>
+            </div>
+            <p class="text-muted" style="padding-left:56px;">${e.commentaire}</p>
+        </div>
+    `).join('');
+}
+</script>
+
+</body>
+</html>

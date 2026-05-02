@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passagers | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-theme">
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Gestion des passagers</h1>
+            <div class="actions">
+                <input type="search" id="searchInput" class="form-control" placeholder="Rechercher un passager" style="width:280px;" oninput="render()">
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-value" id="total">0</div><div class="kpi-label">Total passagers</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="actifs">0</div><div class="kpi-label">Actifs</div></div>
+            <div class="kpi-card red"><div class="kpi-value" id="bannis">0</div><div class="kpi-label">Bannis</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="noteAvg">0.0</div><div class="kpi-label">Note moyenne</div></div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Liste des passagers</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Passager</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Note</th>
+                        <th>Statut</th>
+                        <th>Inscrit le</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tb"></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('ADMIN');
+renderSidebar('sidebar', 'ADMIN', 'passagers.html');
+
+function render() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase();
+    const passagers = (MOCK.utilisateurs || []).filter(u => u.role === 'PASSAGER' &&
+        (u.nom.toLowerCase().includes(q) || u.prenom.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)));
+
+    document.getElementById('total').textContent = passagers.length;
+    document.getElementById('actifs').textContent = passagers.filter(p => p.statut === 'ACTIF').length;
+    document.getElementById('bannis').textContent = passagers.filter(p => p.statut === 'BANNI').length;
+    const avg = passagers.length ? passagers.reduce((s,p) => s + p.noteMoyenne, 0) / passagers.length : 0;
+    document.getElementById('noteAvg').textContent = avg.toFixed(1);
+
+    document.getElementById('tb').innerHTML = passagers.map(p => {
+        const initials = (p.prenom[0] + p.nom[0]).toUpperCase();
+        return `
+        <tr>
+            <td>#${p.id}</td>
+            <td>
+                <div class="flex items-center gap-16">
+                    <div style="width:40px; height:40px; background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900;">${initials}</div>
+                    <strong>${p.prenom} ${p.nom}</strong>
+                </div>
+            </td>
+            <td>${p.email}</td>
+            <td>${p.telephone}</td>
+            <td><span class="stars">${'★'.repeat(Math.round(p.noteMoyenne))}${'☆'.repeat(5-Math.round(p.noteMoyenne))}</span> ${p.noteMoyenne}</td>
+            <td><span class="status-tag status-${p.statut}">${p.statut}</span></td>
+            <td>${p.created}</td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="voir(${p.id})">Voir</button>
+                <button class="btn btn-sm btn-danger" onclick="bannir(${p.id})">Bannir</button>
+                <button class="btn btn-sm btn-danger" onclick="supprimer(${p.id})">Supprimer</button>
+            </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="8" class="text-center text-muted" style="padding:30px;">Aucun passager.</td></tr>';
+}
+
+function voir(id) {
+    const p = MOCK.utilisateurs.find(u => u.id === id);
+    alert(`Profil passager\n\n${p.prenom} ${p.nom}\nEmail : ${p.email}\nTéléphone : ${p.telephone}\nNote : ${p.noteMoyenne}/5\nInscrit le : ${p.created}`);
+}
+
+function bannir(id) {
+    if (!confirm('Confirmer le bannissement de ce passager ?')) return;
+    const p = MOCK.utilisateurs.find(u => u.id === id);
+    if (p) p.statut = p.statut === 'BANNI' ? 'ACTIF' : 'BANNI';
+    render();
+}
+
+function supprimer(id) {
+    if (!confirm('Supprimer définitivement ce compte ? Cette action est irréversible.')) return;
+    const idx = MOCK.utilisateurs.findIndex(u => u.id === id);
+    if (idx >= 0) MOCK.utilisateurs.splice(idx, 1);
+    render();
+}
+
+render();
+</script>
+
+</body>
+</html>

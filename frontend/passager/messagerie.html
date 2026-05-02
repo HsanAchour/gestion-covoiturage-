@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messagerie | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Messagerie</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-list" id="chatList"></div>
+            <div class="chat-main">
+                <div class="chat-header" id="chatHeader">
+                    <div class="avatar" style="background:var(--bg-gray); color:var(--text-muted);">—</div>
+                    <div>
+                        <div class="fw-bold">Aucune conversation</div>
+                        <div class="text-muted" style="font-size:12px;">Sélectionnez un contact</div>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <p class="text-muted text-center" style="padding:40px;">Aucun message.</p>
+                </div>
+                <form class="chat-input" onsubmit="event.preventDefault(); envoyer();">
+                    <input type="text" id="msgInput" class="form-control" placeholder="Écrire un message">
+                    <button class="btn btn-primary">Envoyer</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<button class="sos-btn" onclick="triggerSOS()">SOS</button>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('PASSAGER');
+renderSidebar('sidebar', 'PASSAGER', 'messagerie.html');
+
+const u = Auth.user();
+const contacts = [];
+let currentContact = null;
+
+function renderList() {
+    const el = document.getElementById('chatList');
+    if (contacts.length === 0) {
+        el.innerHTML = '<p class="text-muted text-center" style="padding:30px;">Aucun contact.</p>';
+        return;
+    }
+    el.innerHTML = contacts.map(c => `
+        <div class="chat-item ${c.id === currentContact ? 'active' : ''}" onclick="selectContact(${c.id})">
+            <div class="avatar">${c.nom.split(' ').map(w=>w[0]).join('')}</div>
+            <div class="chat-info">
+                <div class="name">${c.nom}</div>
+                <div class="last">${c.last || ''}</div>
+            </div>
+            ${c.unread ? `<span class="badge badge-danger">${c.unread}</span>` : ''}
+        </div>
+    `).join('');
+}
+
+function renderMessages() {
+    const msgs = (MOCK.messages || []).filter(m => m.expediteurId === currentContact || m.destinataireId === currentContact);
+    const el = document.getElementById('chatMessages');
+    if (msgs.length === 0) {
+        el.innerHTML = '<p class="text-muted text-center" style="padding:40px;">Aucun message.</p>';
+        return;
+    }
+    el.innerHTML = msgs.map(m => `
+        <div class="chat-bubble ${m.expediteurId === u.id ? 'sent' : 'received'}">
+            ${m.contenu}
+            <span class="time">${formatDate(m.dateEnvoi)}</span>
+        </div>
+    `).join('');
+    el.scrollTop = el.scrollHeight;
+}
+
+function selectContact(id) {
+    currentContact = id;
+    const c = contacts.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('chatHeader').innerHTML = `
+        <div class="avatar" style="background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white;">${c.nom.split(' ').map(w=>w[0]).join('')}</div>
+        <div><div class="fw-bold">${c.nom}</div><div class="text-muted" style="font-size:12px;">${c.role || ''}</div></div>`;
+    c.unread = 0;
+    renderList();
+    renderMessages();
+}
+
+function envoyer() {
+    if (!currentContact) { toast('Sélectionnez un contact.', 'info'); return; }
+    const input = document.getElementById('msgInput');
+    const txt = input.value.trim();
+    if (!txt) return;
+    (MOCK.messages ||= []).push({
+        id: Date.now(), expediteurId: u.id, destinataireId: currentContact,
+        contenu: txt, dateEnvoi: new Date().toISOString().replace('T',' ').slice(0,19), lu: true
+    });
+    input.value = '';
+    renderMessages();
+}
+
+renderList();
+</script>
+
+</body>
+</html>

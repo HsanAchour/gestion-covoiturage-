@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion | IHEC Ride</title>
+    <link rel="icon" href="assets/images/logo.jpeg">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+    <aside class="auth-visual">
+        <img src="assets/images/hero.jpeg" alt="Covoiturage">
+        <h1>Bienvenue sur <span>IHEC Ride</span></h1>
+        <p>La plateforme de covoiturage dédiée aux étudiants et enseignants de l'IHEC Carthage. Connectez-vous pour accéder à vos trajets.</p>
+    </aside>
+
+    <div class="auth-form-container fade-in">
+        <div class="auth-header">
+            <a href="index.html" class="brand">
+                <img src="assets/images/logo.jpeg" alt="Logo">
+                <span>IHEC Ride</span>
+            </a>
+            <h2>Connexion</h2>
+            <p>Saisissez vos identifiants pour continuer.</p>
+        </div>
+
+        <div id="alertBox"></div>
+
+        <form id="loginForm" class="auth-form" autocomplete="on">
+            <div class="form-group">
+                <label class="form-label" for="email">Email universitaire</label>
+                <input type="email" id="email" name="email" class="form-control"
+                       placeholder="prenom.nom@ihec.ucar.tn" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" class="form-control"
+                       placeholder="Mot de passe" required>
+            </div>
+
+            <div class="flex justify-between items-center mb-16" style="font-size:14px;">
+                <label class="flex items-center gap-8">
+                    <input type="checkbox" id="remember"> Se souvenir de moi
+                </label>
+                <a href="#" class="text-primary fw-bold">Mot de passe oublié ?</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                Se connecter
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Pas encore de compte ? <a href="register.html">Créer un compte</a>
+        </div>
+    </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const pwd = document.getElementById('password').value;
+    const alertBox = document.getElementById('alertBox');
+    alertBox.innerHTML = '';
+
+    if (!/^[A-Za-z0-9._%+-]+@ihec\.ucar\.tn$/.test(email)) {
+        alertBox.innerHTML = '<div class="alert alert-danger">Votre email doit se terminer par @ihec.ucar.tn</div>';
+        return;
+    }
+
+    try {
+        const r = await apiPost('/api/login', { email: email, motDePasse: pwd });
+        if (r.success === true || r.success === 'true') {
+            Auth.save(r);
+            alertBox.innerHTML = '<div class="alert alert-success">Connexion réussie. Redirection.</div>';
+            setTimeout(() => {
+                if (r.role === 'ADMIN') location.href = 'admin/home.html';
+                else if (r.role === 'CONDUCTEUR') location.href = 'conducteur/home.html';
+                else location.href = 'passager/home.html';
+            }, 800);
+            return;
+        }
+        alertBox.innerHTML = '<div class="alert alert-danger">' + (r.message || 'Identifiants invalides.') + '</div>';
+    } catch (err) {
+        alertBox.innerHTML = '<div class="alert alert-danger">' + (err.message || 'Erreur de connexion.') + '</div>';
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trajets disponibles | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Trajets disponibles</h1>
+            <div class="actions">
+                <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="search-box">
+            <form class="search-grid" onsubmit="event.preventDefault(); filtrer();">
+                <div>
+                    <label class="form-label">Départ</label>
+                    <input id="fDepart" type="text" class="form-control" placeholder="Ville ou station">
+                </div>
+                <div>
+                    <label class="form-label">Destination</label>
+                    <input id="fDest" type="text" class="form-control" placeholder="Ex : IHEC Carthage">
+                </div>
+                <div>
+                    <label class="form-label">Date</label>
+                    <input id="fDate" type="date" class="form-control">
+                </div>
+                <button class="btn btn-primary">Filtrer</button>
+            </form>
+            <div class="mt-16 flex gap-16 items-center" style="font-size:14px;">
+                <span class="text-muted">Tri :</span>
+                <button class="btn btn-sm btn-outline" onclick="trier('prix')">Prix croissant</button>
+                <button class="btn btn-sm btn-outline" onclick="trier('date')">Heure</button>
+                <button class="btn btn-sm btn-outline" onclick="trier('note')">Meilleures notes</button>
+            </div>
+        </div>
+
+        <div id="results" class="grid grid-2"></div>
+    </main>
+</div>
+
+<!-- Modal détail -->
+<div id="modal" class="modal hidden">
+    <div class="modal-content">
+        <button class="modal-close" onclick="fermerModal()">×</button>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<button class="sos-btn" onclick="triggerSOS()">SOS</button>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('PASSAGER');
+renderSidebar('sidebar', 'PASSAGER', 'trajets.html');
+
+let trajets = [...(MOCK.trajets || [])];
+
+function render() {
+    const el = document.getElementById('results');
+    if (trajets.length === 0) {
+        el.innerHTML = '<p class="text-muted text-center" style="grid-column:1/-1; padding:40px;">Aucun trajet disponible.</p>';
+        return;
+    }
+    el.innerHTML = trajets.map(t => `
+        <div class="trajet-card">
+            <div class="header">
+                <div class="driver">
+                    <div class="avatar">${t.conducteurNom.split(' ').map(w=>w[0]).join('').toUpperCase()}</div>
+                    <div>
+                        <div class="driver-name">${t.conducteurNom}</div>
+                        <div class="stars">${'★'.repeat(Math.round(t.note))}${'☆'.repeat(5-Math.round(t.note))} <span class="text-muted" style="font-size:12px;">(${t.note})</span></div>
+                    </div>
+                </div>
+                <div class="price">${t.prix} DT</div>
+            </div>
+            <div class="route">
+                <span>${t.depart}</span>
+                <span class="arrow">→</span>
+                <span>${t.destination}</span>
+            </div>
+            <div class="details">
+                <span class="tag">${formatDate(t.dateHeure)}</span>
+                <span class="tag">${t.placesDispo}/${t.placesTotal} places</span>
+                <span class="badge badge-success">${t.statut}</span>
+            </div>
+            ${t.description ? `<div class="text-muted mt-8" style="font-size:13px;">${t.description}</div>` : ''}
+            <div class="actions">
+                <button class="btn btn-primary btn-sm" onclick="reserver(${t.id})">Réserver</button>
+                <button class="btn btn-outline btn-sm" onclick="voirDetails(${t.id})">Détails</button>
+                <button class="btn btn-outline btn-sm" onclick="messager(${t.conducteurId})">Message</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filtrer() {
+    const d = document.getElementById('fDepart').value.toLowerCase();
+    const dest = document.getElementById('fDest').value.toLowerCase();
+    const date = document.getElementById('fDate').value;
+    trajets = (MOCK.trajets || []).filter(t =>
+        (!d || t.depart.toLowerCase().includes(d)) &&
+        (!dest || t.destination.toLowerCase().includes(dest)) &&
+        (!date || t.dateHeure.startsWith(date))
+    );
+    render();
+}
+
+function trier(critere) {
+    if (critere === 'prix') trajets.sort((a,b) => parseFloat(a.prix) - parseFloat(b.prix));
+    if (critere === 'date') trajets.sort((a,b) => a.dateHeure.localeCompare(b.dateHeure));
+    if (critere === 'note') trajets.sort((a,b) => b.note - a.note);
+    render();
+}
+
+function voirDetails(id) {
+    const t = (MOCK.trajets || []).find(x => x.id === id);
+    if (!t) return;
+    const e = (MOCK.evaluations || []).slice(0,3);
+    document.getElementById('modalBody').innerHTML = `
+        <h2 style="color:var(--ihec-blue-dark); margin-bottom:16px;">${t.depart} → ${t.destination}</h2>
+        <div class="grid grid-2 mb-16">
+            <div><strong>Date :</strong> ${formatDate(t.dateHeure)}</div>
+            <div><strong>Prix :</strong> ${t.prix} DT</div>
+            <div><strong>Places :</strong> ${t.placesDispo}/${t.placesTotal}</div>
+            <div><strong>Conducteur :</strong> ${t.conducteurNom}</div>
+        </div>
+        ${t.description ? `<div class="alert alert-info">${t.description}</div>` : ''}
+        <h3 class="mt-16 mb-16">Avis sur ${t.conducteurNom}</h3>
+        ${e.length === 0 ? '<p class="text-muted">Aucun avis pour le moment.</p>' : e.map(ev => `
+            <div class="card mb-16" style="padding:14px;">
+                <div class="flex justify-between">
+                    <strong>${ev.evaluateurNom}</strong>
+                    <span class="stars">${'★'.repeat(ev.note)}${'☆'.repeat(5-ev.note)}</span>
+                </div>
+                <p class="text-muted mt-8">${ev.commentaire}</p>
+            </div>
+        `).join('')}
+        <button class="btn btn-primary btn-block btn-lg mt-16" onclick="reserver(${t.id}); fermerModal();">Réserver ma place</button>
+    `;
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function fermerModal() { document.getElementById('modal').classList.add('hidden'); }
+function reserver(id) { toast('Demande envoyée au conducteur.', 'success'); }
+function messager(uid) { location.href = 'messagerie.html?user=' + uid; }
+
+const params = new URLSearchParams(location.search);
+if (params.get('depart')) document.getElementById('fDepart').value = params.get('depart');
+if (params.get('destination')) document.getElementById('fDest').value = params.get('destination');
+if (params.get('date')) document.getElementById('fDate').value = params.get('date');
+
+filtrer();
+</script>
+
+<style>
+.toast { position:fixed; top:20px; right:20px; padding:14px 24px; border-radius:12px; background:var(--success); color:white; font-weight:700; z-index:9999; box-shadow:var(--shadow-lg); }
+.toast-danger { background:var(--danger); }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+.modal-content { background:white; border-radius:var(--radius-lg); padding:32px; max-width:640px; width:100%; max-height:90vh; overflow-y:auto; position:relative; }
+.modal-close { position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; background:var(--bg-gray); font-size:22px; cursor:pointer; border:none; }
+</style>
+
+</body>
+</html>

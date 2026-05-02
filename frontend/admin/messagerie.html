@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messagerie | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-theme">
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Messagerie globale</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-value" id="kEnvoyes">0</div><div class="kpi-label">Messages envoyés</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="kRecus">0</div><div class="kpi-label">Messages reçus</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="kDiffusions">0</div><div class="kpi-label">Diffusions</div></div>
+            <div class="kpi-card purple"><div class="kpi-value" id="kEnLigne">0</div><div class="kpi-label">Utilisateurs actifs</div></div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Diffusion rapide</h3>
+            <p class="text-muted mb-16">Envoyez un message groupé à tous les utilisateurs ou à un rôle spécifique.</p>
+            <div class="flex gap-16 mb-16" style="flex-wrap:wrap;">
+                <button class="btn btn-primary btn-sm" onclick="setCible('ALL')" id="btAll">Tout le monde</button>
+                <button class="btn btn-outline btn-sm" onclick="setCible('PASSAGER')" id="btP">Tous les passagers</button>
+                <button class="btn btn-outline btn-sm" onclick="setCible('CONDUCTEUR')" id="btC">Tous les conducteurs</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Objet</label>
+                <input type="text" id="objet" class="form-control" placeholder="Ex. : mise à jour de la plateforme, campagne de sécurité">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Message</label>
+                <textarea id="broadcastMsg" class="form-control" rows="4" placeholder="Votre message à tous les utilisateurs"></textarea>
+            </div>
+            <div class="flex gap-16">
+                <button class="btn btn-primary" onclick="diffuser()">Diffuser maintenant</button>
+                <button class="btn btn-outline" onclick="prevueDiffusion()">Aperçu</button>
+            </div>
+        </div>
+
+        <div class="admin-card mt-24">
+            <h3>Conversation directe</h3>
+            <div class="chat-container" style="margin-top:16px;">
+                <div class="chat-list">
+                    <div class="form-group" style="padding:12px; border-bottom:1px solid var(--border);">
+                        <input type="search" id="searchUser" class="form-control" placeholder="Rechercher un utilisateur" oninput="renderList()">
+                    </div>
+                    <div class="flex gap-8" style="padding:8px 12px; border-bottom:1px solid var(--border);">
+                        <button class="btn btn-outline btn-sm" onclick="setFiltreRole('all')" id="fRoleAll">Tous</button>
+                        <button class="btn btn-outline btn-sm" onclick="setFiltreRole('PASSAGER')" id="fRoleP">Passagers</button>
+                        <button class="btn btn-outline btn-sm" onclick="setFiltreRole('CONDUCTEUR')" id="fRoleC">Conducteurs</button>
+                    </div>
+                    <div id="chatList"></div>
+                </div>
+                <div class="chat-main">
+                    <div class="chat-header" id="chatHeader">
+                        <div class="avatar" style="background:var(--bg-gray); color:var(--text-muted);">—</div>
+                        <div>
+                            <div class="fw-bold">Aucun utilisateur sélectionné</div>
+                            <div class="text-muted" style="font-size:12px;">Choisissez un contact à gauche</div>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <p class="text-muted text-center" style="padding:40px;">Aucune conversation.</p>
+                    </div>
+                    <form class="chat-input" onsubmit="event.preventDefault(); envoyer();">
+                        <input type="text" id="msgInput" class="form-control" placeholder="Écrire un message officiel">
+                        <button class="btn btn-primary">Envoyer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card mt-24">
+            <h3>Historique des diffusions</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Cible</th>
+                        <th>Objet</th>
+                        <th>Message</th>
+                        <th>Destinataires</th>
+                        <th>Lus</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="histoTb"></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('ADMIN');
+renderSidebar('sidebar', 'ADMIN', 'messagerie.html');
+
+const u = Auth.user();
+let cible = 'ALL';
+let filtreRole = 'all';
+let currentContact = null;
+
+const diffusions = [];
+const convs = {};
+
+function setCible(c) {
+    cible = c;
+    ['btAll','btP','btC'].forEach(id => document.getElementById(id).classList.replace('btn-primary','btn-outline'));
+    const map = { 'ALL':'btAll', 'PASSAGER':'btP', 'CONDUCTEUR':'btC' };
+    document.getElementById(map[c]).classList.replace('btn-outline','btn-primary');
+}
+
+function setFiltreRole(r) {
+    filtreRole = r;
+    ['fRoleAll','fRoleP','fRoleC'].forEach(id => document.getElementById(id).classList.remove('btn-primary'));
+    const map = { 'all':'fRoleAll', 'PASSAGER':'fRoleP', 'CONDUCTEUR':'fRoleC' };
+    document.getElementById(map[r]).classList.add('btn-primary');
+    renderList();
+}
+
+function kpis() {
+    document.getElementById('kEnvoyes').textContent = 0;
+    document.getElementById('kRecus').textContent = 0;
+    document.getElementById('kDiffusions').textContent = diffusions.length;
+    document.getElementById('kEnLigne').textContent = (MOCK.utilisateurs || []).filter(x => x.statut === 'ACTIF').length;
+}
+
+function renderList() {
+    const q = (document.getElementById('searchUser').value || '').toLowerCase();
+    const users = (MOCK.utilisateurs || [])
+        .filter(x => x.role !== 'ADMIN')
+        .filter(x => filtreRole === 'all' || x.role === filtreRole)
+        .filter(x => (x.prenom + ' ' + x.nom).toLowerCase().includes(q) || x.email.toLowerCase().includes(q));
+
+    document.getElementById('chatList').innerHTML = users.map(c => {
+        const initials = (c.prenom[0]+c.nom[0]).toUpperCase();
+        const roleLabel = c.role === 'CONDUCTEUR' ? 'Conducteur' : 'Passager';
+        const lastMsg = (convs[c.id] && convs[c.id].length) ? convs[c.id][convs[c.id].length-1].contenu : 'Aucun message';
+        return `
+        <div class="chat-item ${c.id === currentContact ? 'active' : ''}" onclick="selectContact(${c.id})">
+            <div class="avatar" style="background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white;">${initials}</div>
+            <div class="chat-info">
+                <div class="name">${c.prenom} ${c.nom}</div>
+                <div class="last">${roleLabel} · ${lastMsg.substring(0, 32)}${lastMsg.length > 32 ? '…' : ''}</div>
+            </div>
+        </div>`;
+    }).join('') || '<div class="text-center text-muted" style="padding:20px;">Aucun utilisateur.</div>';
+}
+
+function selectContact(id) {
+    currentContact = id;
+    const c = (MOCK.utilisateurs || []).find(x => x.id === id);
+    if (!c) return;
+    const initials = (c.prenom[0]+c.nom[0]).toUpperCase();
+    const roleLabel = c.role === 'CONDUCTEUR' ? 'Conducteur' : 'Passager';
+    document.getElementById('chatHeader').innerHTML = `
+        <div class="avatar" style="background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white;">${initials}</div>
+        <div>
+            <div class="fw-bold">${c.prenom} ${c.nom}</div>
+            <div class="text-muted" style="font-size:12px;">${roleLabel} · ${c.email}</div>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="voirProfil(${c.id})">Profil</button>
+            <button class="btn btn-danger btn-sm" onclick="bannir(${c.id})">Bannir</button>
+        </div>`;
+    if (!convs[c.id]) convs[c.id] = [];
+    renderMessages();
+    renderList();
+}
+
+function renderMessages() {
+    if (!currentContact) return;
+    const list = convs[currentContact] || [];
+    const box = document.getElementById('chatMessages');
+    if (list.length === 0) {
+        box.innerHTML = '<p class="text-muted text-center" style="padding:40px;">Aucun message.</p>';
+        return;
+    }
+    box.innerHTML = list.map(m => `
+        <div class="chat-bubble ${m.from === u.id ? 'sent' : 'received'}">
+            ${m.contenu}
+            <span class="time">${formatDate(m.date)}</span>
+        </div>
+    `).join('');
+    box.scrollTop = box.scrollHeight;
+}
+
+function envoyer() {
+    if (!currentContact) {
+        alert('Sélectionnez d\'abord un utilisateur à gauche.');
+        return;
+    }
+    const input = document.getElementById('msgInput');
+    const txt = input.value.trim();
+    if (!txt) return;
+    if (!convs[currentContact]) convs[currentContact] = [];
+    convs[currentContact].push({
+        from: u.id,
+        contenu: txt,
+        date: new Date().toISOString().replace('T',' ').slice(0,19)
+    });
+    input.value = '';
+    renderMessages();
+}
+
+function diffuser() {
+    const objet = document.getElementById('objet').value.trim();
+    const msg = document.getElementById('broadcastMsg').value.trim();
+    if (!objet || !msg) {
+        alert('Veuillez renseigner l\'objet et le message.');
+        return;
+    }
+    const cibleLabel = cible === 'ALL' ? 'Tous les utilisateurs' : (cible === 'PASSAGER' ? 'Passagers' : 'Conducteurs');
+    if (!confirm(`Diffuser ce message à ${cibleLabel} ?\n\nObjet : ${objet}\n\n${msg}`)) return;
+
+    const destinataires = cible === 'ALL'
+        ? (MOCK.utilisateurs || []).filter(x => x.role !== 'ADMIN').length
+        : (MOCK.utilisateurs || []).filter(x => x.role === cible).length;
+
+    diffusions.unshift({
+        date: new Date().toISOString().replace('T',' ').slice(0,19),
+        cible, objet, message: msg, dest: destinataires, lus: 0
+    });
+
+    document.getElementById('objet').value = '';
+    document.getElementById('broadcastMsg').value = '';
+    alert(`Diffusion envoyée à ${destinataires} utilisateur(s).`);
+    renderHisto();
+    kpis();
+}
+
+function prevueDiffusion() {
+    const objet = document.getElementById('objet').value.trim() || '(sans objet)';
+    const msg = document.getElementById('broadcastMsg').value.trim() || '(message vide)';
+    const cibleLabel = cible === 'ALL' ? 'Tous les utilisateurs' : (cible === 'PASSAGER' ? 'Tous les passagers' : 'Tous les conducteurs');
+    alert(`Aperçu de la diffusion\n\nCible : ${cibleLabel}\nObjet : ${objet}\n\n${msg}`);
+}
+
+function renderHisto() {
+    document.getElementById('histoTb').innerHTML = diffusions.map((d, idx) => {
+        const cibleLabel = d.cible === 'ALL' ? 'Tous' : (d.cible === 'PASSAGER' ? 'Passagers' : 'Conducteurs');
+        const tauxLecture = d.dest > 0 ? Math.round((d.lus / d.dest) * 100) : 0;
+        return `
+        <tr>
+            <td>${formatDate(d.date)}</td>
+            <td><span class="badge badge-primary">${cibleLabel}</span></td>
+            <td><strong>${d.objet}</strong></td>
+            <td><span class="text-muted">${d.message.substring(0, 40)}${d.message.length > 40 ? '…' : ''}</span></td>
+            <td>${d.dest}</td>
+            <td><span class="badge badge-success">${d.lus}/${d.dest} (${tauxLecture}%)</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="voirDiffusion(${idx})">Voir</button>
+                <button class="btn btn-sm btn-danger" onclick="supprDiffusion(${idx})">Supprimer</button>
+            </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="7" class="text-center text-muted" style="padding:20px;">Aucune diffusion.</td></tr>';
+}
+
+function voirDiffusion(idx) {
+    const d = diffusions[idx];
+    alert(`Diffusion du ${formatDate(d.date)}\n\nCible : ${d.cible}\nObjet : ${d.objet}\n\n${d.message}\n\n${d.dest} destinataires · ${d.lus} lus`);
+}
+
+function supprDiffusion(idx) {
+    if (!confirm('Supprimer cette diffusion de l\'historique ?')) return;
+    diffusions.splice(idx, 1);
+    renderHisto();
+    kpis();
+}
+
+function voirProfil(id) {
+    const c = (MOCK.utilisateurs || []).find(x => x.id === id);
+    if (!c) return;
+    alert(`Profil utilisateur\n\n${c.prenom} ${c.nom}\nEmail : ${c.email}\nTéléphone : ${c.telephone}\nRôle : ${c.role}\nNote : ${c.noteMoyenne}/5\nInscrit le : ${c.created}\nStatut : ${c.statut}`);
+}
+
+function bannir(id) {
+    if (!confirm('Bannir cet utilisateur ? Son accès sera révoqué.')) return;
+    const c = (MOCK.utilisateurs || []).find(x => x.id === id);
+    if (c) {
+        c.statut = c.statut === 'BANNI' ? 'ACTIF' : 'BANNI';
+        alert(`Utilisateur ${c.statut === 'BANNI' ? 'banni' : 'réactivé'}.`);
+    }
+    renderList();
+    selectContact(id);
+}
+
+kpis();
+renderList();
+renderHisto();
+</script>
+
+</body>
+</html>

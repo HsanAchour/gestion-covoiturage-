@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aide conducteur | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Aide conducteur</h1>
+        </div>
+
+        <div class="grid grid-2">
+            <div class="admin-card">
+                <h3>Guide du conducteur</h3>
+                <details class="mb-16" style="padding:12px; background:var(--bg-gray); border-radius:8px;">
+                    <summary class="fw-bold" style="cursor:pointer;">Comment publier un trajet ?</summary>
+                    <p class="text-muted mt-8">Cliquez sur « Créer un trajet » dans le menu. Remplissez le point de départ, la destination, la date, l'heure, le prix, le nombre de places et une description optionnelle. Publiez, les passagers peuvent immédiatement réserver.</p>
+                </details>
+                <details class="mb-16" style="padding:12px; background:var(--bg-gray); border-radius:8px;">
+                    <summary class="fw-bold" style="cursor:pointer;">Accepter ou refuser une demande ?</summary>
+                    <p class="text-muted mt-8">Rendez-vous dans « Demandes reçues ». Pour chaque demande, cliquez sur Accepter ou Refuser. Les passagers acceptés sont automatiquement ajoutés au groupe du trajet.</p>
+                </details>
+                <details class="mb-16" style="padding:12px; background:var(--bg-gray); border-radius:8px;">
+                    <summary class="fw-bold" style="cursor:pointer;">Comment modifier le prix d'un trajet ?</summary>
+                    <p class="text-muted mt-8">Depuis votre tableau de bord, cliquez sur le trajet concerné puis sur « Modifier ». Vous pouvez ajuster le prix tant qu'aucun passager n'a encore réservé.</p>
+                </details>
+                <details class="mb-16" style="padding:12px; background:var(--bg-gray); border-radius:8px;">
+                    <summary class="fw-bold" style="cursor:pointer;">Quand marquer un trajet comme terminé ?</summary>
+                    <p class="text-muted mt-8">À la fin du trajet, marquez-le comme terminé. Cela déclenche automatiquement une invitation aux passagers pour vous évaluer et met à jour votre note moyenne.</p>
+                </details>
+                <details class="mb-16" style="padding:12px; background:var(--bg-gray); border-radius:8px;">
+                    <summary class="fw-bold" style="cursor:pointer;">Comment améliorer ma note moyenne ?</summary>
+                    <p class="text-muted mt-8">Ponctualité, véhicule propre, courtoisie, communication claire, respect du code de la route.</p>
+                </details>
+            </div>
+
+            <div class="admin-card">
+                <h3>Contacter le support</h3>
+                <form onsubmit="event.preventDefault(); alert('Votre demande a été envoyée.');">
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select class="form-control" required>
+                            <option>Problème technique</option>
+                            <option>Signaler un passager</option>
+                            <option>Question administrative</option>
+                            <option>Paiement / Revenus</option>
+                            <option>Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sujet</label>
+                        <input type="text" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" rows="5" required></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block">Envoyer au support</button>
+                </form>
+
+                <div class="alert alert-info mt-24" style="font-size:13px;">
+                    <strong>Support conducteurs :</strong><br>
+                    Du lundi au vendredi, 8 h à 18 h<br>
+                    conducteurs@ihec-ride.tn
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'help.html');
+</script>
+
+</body>
+</html>

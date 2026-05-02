@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes réservations | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Mes réservations</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <div class="flex gap-16 mb-24">
+            <button class="btn btn-primary btn-sm" onclick="filtrerStatut('all')">Toutes</button>
+            <button class="btn btn-outline btn-sm" onclick="filtrerStatut('EN_ATTENTE')">En attente</button>
+            <button class="btn btn-outline btn-sm" onclick="filtrerStatut('ACCEPTE')">Acceptées</button>
+            <button class="btn btn-outline btn-sm" onclick="filtrerStatut('REFUSE')">Refusées</button>
+        </div>
+
+        <table id="resTable">
+            <thead>
+                <tr>
+                    <th>Trajet</th>
+                    <th>Date / Heure</th>
+                    <th>Conducteur</th>
+                    <th>Prix</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="resBody"></tbody>
+        </table>
+    </main>
+</div>
+
+<button class="sos-btn" onclick="triggerSOS()">SOS</button>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('PASSAGER');
+renderSidebar('sidebar', 'PASSAGER', 'reservations.html');
+
+let filtreStatut = 'all';
+
+function render() {
+    const reservs = (MOCK.reservations || []).filter(r => filtreStatut === 'all' || r.statut === filtreStatut);
+    const data = reservs.map(r => {
+        const t = (MOCK.trajets || []).find(x => x.id === r.trajetId);
+        if (!t) return '';
+        return `
+            <tr>
+                <td><strong>${t.depart}</strong> → ${t.destination}</td>
+                <td>${formatDate(t.dateHeure)}</td>
+                <td>${t.conducteurNom}</td>
+                <td><strong>${t.prix} DT</strong></td>
+                <td><span class="status-tag status-${r.statut}">${r.statut.replace('_',' ')}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline" onclick="messager(${t.conducteurId})">Message</button>
+                    ${r.statut === 'ACCEPTE' ? `<button class="btn btn-sm btn-primary" onclick="suivreGPS(${t.id})">GPS</button>` : ''}
+                    ${r.statut !== 'ANNULE' ? `<button class="btn btn-sm btn-danger" onclick="annuler(${r.id})">Annuler</button>` : ''}
+                </td>
+            </tr>`;
+    }).join('');
+    document.getElementById('resBody').innerHTML = data || '<tr><td colspan="6" class="text-center text-muted" style="padding:30px;">Aucune réservation.</td></tr>';
+}
+
+function filtrerStatut(s) { filtreStatut = s; render(); }
+function messager(uid) { location.href = 'messagerie.html?user=' + uid; }
+function suivreGPS(id) { toast('Ouverture du suivi GPS.', 'info'); }
+function annuler(id) {
+    if (confirm('Confirmer l\'annulation de la réservation ?')) {
+        const r = MOCK.reservations.find(x => x.id === id);
+        if (r) r.statut = 'ANNULE';
+        render();
+        toast('Réservation annulée.', 'info');
+    }
+}
+render();
+</script>
+
+<style>
+.toast { position:fixed; top:20px; right:20px; padding:14px 24px; border-radius:12px; background:var(--success); color:white; font-weight:700; z-index:9999; }
+.toast-info { background: var(--ihec-blue); }
+</style>
+
+</body>
+</html>

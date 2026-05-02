@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-theme">
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h1>Tableau de bord</h1>
+                <p class="text-muted">Vue d'ensemble de la plateforme IHEC Ride</p>
+            </div>
+            <div class="actions">
+                <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-value" id="kpiUsers">0</div><div class="kpi-label">Utilisateurs totaux</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="kpiTrajets">0</div><div class="kpi-label">Trajets ce mois</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="kpiTaux">0%</div><div class="kpi-label">Taux de complétion</div></div>
+            <div class="kpi-card purple"><div class="kpi-value" id="kpiCo2">0 kg</div><div class="kpi-label">CO₂ économisé</div></div>
+        </div>
+
+        <div class="grid grid-2 mt-24">
+            <div class="admin-card">
+                <h3>Évolution des trajets (7 derniers jours)</h3>
+                <div class="bar-chart">
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Lun</span></div>
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Mar</span></div>
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Mer</span></div>
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Jeu</span></div>
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Ven</span></div>
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Sam</span></div>
+                    <div class="bar" style="height:0%;"><span class="bar-value">0</span><span class="bar-label">Dim</span></div>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <h3>Répartition des utilisateurs</h3>
+                <div class="flex gap-24 items-center">
+                    <div class="pie-chart" id="pieChart"></div>
+                    <div class="pie-legend" style="flex:1;">
+                        <div class="pie-legend-item"><span class="dot" style="background:var(--ihec-blue);"></span> Passagers (<span id="pctP">0</span>%)</div>
+                        <div class="pie-legend-item"><span class="dot" style="background:var(--ihec-yellow);"></span> Conducteurs (<span id="pctC">0</span>%)</div>
+                        <div class="pie-legend-item"><span class="dot" style="background:var(--success);"></span> Actifs (<span id="pctA">0</span>%)</div>
+                        <div class="pie-legend-item"><span class="dot" style="background:var(--danger);"></span> Inactifs (<span id="pctI">0</span>%)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 mt-24">
+            <div class="admin-card">
+                <h3>Alertes SOS récentes</h3>
+                <div id="sosList">
+                    <p class="text-muted" style="padding:16px 0;">Aucune alerte active.</p>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <h3>Réclamations en attente</h3>
+                <div id="recList"></div>
+                <a href="reclamations.html" class="btn btn-outline btn-block mt-16">Voir toutes les réclamations</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('ADMIN');
+renderSidebar('sidebar', 'ADMIN', 'home.html');
+
+const rec = MOCK.reclamations || [];
+const recListEl = document.getElementById('recList');
+if (rec.length === 0) {
+    recListEl.innerHTML = '<p class="text-muted" style="padding:16px 0;">Aucune réclamation.</p>';
+} else {
+    recListEl.innerHTML = rec.slice(0,3).map(r => `
+        <div class="flex justify-between items-center mb-16" style="padding:12px; background:var(--bg-gray); border-radius:10px;">
+            <div>
+                <div class="fw-bold">${r.type} · ${r.declarantNom}</div>
+                <div class="text-muted" style="font-size:12px;">${r.description.slice(0,50)}…</div>
+            </div>
+            <span class="status-tag status-${r.statut}">${r.statut.replace('_',' ')}</span>
+        </div>
+    `).join('');
+}
+</script>
+
+</body>
+</html>

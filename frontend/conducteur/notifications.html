@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Notifications</h1>
+            <button class="btn btn-outline" onclick="toutLire()">Tout marquer comme lu</button>
+        </div>
+
+        <div class="notification-list" id="notifList"></div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'notifications.html');
+
+const notifs = [];
+
+function render() {
+    const el = document.getElementById('notifList');
+    if (notifs.length === 0) {
+        el.innerHTML = '<p class="text-muted text-center" style="padding:40px;">Aucune notification.</p>';
+        return;
+    }
+    el.innerHTML = notifs.map(n => `
+        <div class="notification-item ${n.lu ? '' : 'unread'}">
+            <div class="notif-content">
+                <div class="notif-title">${n.titre}</div>
+                <div class="notif-text">${n.contenu}</div>
+            </div>
+            <div class="notif-time">${formatDate(n.date)}</div>
+        </div>
+    `).join('');
+}
+function toutLire() { notifs.forEach(n => n.lu = true); render(); }
+render();
+</script>
+
+</body>
+</html>

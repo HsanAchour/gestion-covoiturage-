@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un trajet | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Créer un trajet</h1>
+        </div>
+
+        <div id="alertBox"></div>
+
+        <div class="grid" style="grid-template-columns: 2fr 1fr; gap:24px;">
+            <div class="admin-card">
+                <h3>Informations du trajet</h3>
+
+                <form id="tripForm" onsubmit="event.preventDefault(); creer();">
+                    <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <div class="form-group">
+                            <label class="form-label">Point de départ</label>
+                            <input type="text" id="depart" class="form-control" placeholder="Ex : Tunis Centre" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Destination</label>
+                            <input type="text" id="destination" class="form-control" value="IHEC Carthage" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <div class="form-group">
+                            <label class="form-label">Date et heure de départ</label>
+                            <input type="datetime-local" id="dateHeure" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Prix par place (DT)</label>
+                            <input type="number" id="prix" class="form-control" step="0.5" min="0.5" max="20" value="3.00" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nombre de places disponibles</label>
+                        <div class="flex gap-16" id="placesPicker">
+                            <button type="button" class="btn btn-outline" data-val="1">1</button>
+                            <button type="button" class="btn btn-outline" data-val="2">2</button>
+                            <button type="button" class="btn btn-primary" data-val="3">3</button>
+                            <button type="button" class="btn btn-outline" data-val="4">4</button>
+                        </div>
+                        <input type="hidden" id="places" value="3">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description (optionnel)</label>
+                        <textarea id="description" class="form-control" rows="4" placeholder="Ex : climatisation, pas de fumeur, musique au choix."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="fw-bold">Options</label>
+                        <div class="flex flex-col gap-8 mt-8">
+                            <label class="flex items-center gap-8"><input type="checkbox" checked> Climatisation</label>
+                            <label class="flex items-center gap-8"><input type="checkbox"> Pas de fumeur</label>
+                            <label class="flex items-center gap-8"><input type="checkbox"> Musique autorisée</label>
+                            <label class="flex items-center gap-8"><input type="checkbox"> Grand coffre (bagages)</label>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-16">
+                        <button type="submit" class="btn btn-primary btn-lg">Publier le trajet</button>
+                        <a href="home.html" class="btn btn-outline btn-lg">Annuler</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Aperçu -->
+            <div class="admin-card">
+                <h3>Aperçu du trajet</h3>
+                <div class="trajet-card" style="box-shadow:none; border:2px solid var(--border);">
+                    <div class="header">
+                        <div class="driver">
+                            <div class="avatar" id="apercuAvatar">—</div>
+                            <div>
+                                <div class="driver-name" id="apercuNom">Vous</div>
+                                <div class="stars">☆☆☆☆☆</div>
+                            </div>
+                        </div>
+                        <div class="price" id="apercuPrix">3.00 DT</div>
+                    </div>
+                    <div class="route">
+                        <span id="apercuDep">Point de départ</span>
+                        <span class="arrow">→</span>
+                        <span id="apercuDes">IHEC Carthage</span>
+                    </div>
+                    <div class="details">
+                        <span class="tag"><span id="apercuDate">—</span></span>
+                        <span class="tag"><span id="apercuPlaces">3</span> places</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'creer-trajet.html');
+
+const u = Auth.user();
+if (u) {
+    document.getElementById('apercuNom').textContent = u.prenom + ' ' + u.nom;
+    document.getElementById('apercuAvatar').textContent = (u.prenom[0] + u.nom[0]).toUpperCase();
+}
+
+document.querySelectorAll('#placesPicker button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('#placesPicker button').forEach(x => {
+            x.classList.remove('btn-primary'); x.classList.add('btn-outline');
+        });
+        b.classList.remove('btn-outline'); b.classList.add('btn-primary');
+        document.getElementById('places').value = b.dataset.val;
+        document.getElementById('apercuPlaces').textContent = b.dataset.val;
+    });
+});
+
+['depart','destination','prix','dateHeure'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateApercu);
+});
+function updateApercu() {
+    document.getElementById('apercuDep').textContent = document.getElementById('depart').value || 'Point de départ';
+    document.getElementById('apercuDes').textContent = document.getElementById('destination').value || 'Destination';
+    document.getElementById('apercuPrix').textContent = document.getElementById('prix').value + ' DT';
+    const d = document.getElementById('dateHeure').value;
+    document.getElementById('apercuDate').textContent = d ? formatDate(d) : '—';
+}
+
+async function creer() {
+    const data = {
+        depart: document.getElementById('depart').value,
+        destination: document.getElementById('destination').value,
+        dateHeure: document.getElementById('dateHeure').value,
+        prix: document.getElementById('prix').value,
+        places: document.getElementById('places').value,
+        description: document.getElementById('description').value
+    };
+    try {
+        const r = await apiPost('/api/trajets', data);
+        if (r.success === 'true') {
+            document.getElementById('alertBox').innerHTML = '<div class="alert alert-success">Trajet publié.</div>';
+            setTimeout(() => location.href = 'home.html', 1000);
+            return;
+        }
+    } catch (e) { /* fallback */ }
+
+    (MOCK.trajets ||= []).unshift({
+        id: Date.now() % 1000, conducteurId: u.id, conducteurNom: u.prenom + ' ' + u.nom,
+        depart: data.depart, destination: data.destination,
+        dateHeure: data.dateHeure.replace('T',' ') + ':00',
+        prix: data.prix, placesDispo: parseInt(data.places), placesTotal: parseInt(data.places),
+        statut: 'OUVERT', description: data.description, note: 0
+    });
+    document.getElementById('alertBox').innerHTML = '<div class="alert alert-success">Trajet publié.</div>';
+    setTimeout(() => location.href = 'home.html', 1000);
+}
+</script>
+
+</body>
+</html>

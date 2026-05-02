@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription | IHEC Ride</title>
+    <link rel="icon" href="assets/images/logo.jpeg">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+    <aside class="auth-visual">
+        <img src="assets/images/campus.jpeg" alt="Campus IHEC">
+        <h1>Rejoignez <span>la communauté</span></h1>
+        <p>Créez votre compte IHEC Ride en 2 minutes avec votre email universitaire et commencez à partager vos trajets.</p>
+    </aside>
+
+    <div class="auth-form-container fade-in">
+        <div class="auth-header">
+            <a href="index.html" class="brand">
+                <img src="assets/images/logo.jpeg" alt="Logo">
+                <span>IHEC Ride</span>
+            </a>
+            <h2>Créer un compte</h2>
+            <p>Entrez vos informations pour commencer.</p>
+        </div>
+
+        <div id="alertBox"></div>
+
+        <form id="registerForm" class="auth-form">
+            <label class="form-label">Je suis</label>
+            <div class="role-selector">
+                <div class="role-option selected" data-role="PASSAGER">
+                    Passager
+                </div>
+                <div class="role-option" data-role="CONDUCTEUR">
+                    Conducteur
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="prenom">Prénom</label>
+                    <input type="text" id="prenom" name="prenom" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nom">Nom</label>
+                    <input type="text" id="nom" name="nom" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email universitaire</label>
+                <input type="email" id="email" name="email" class="form-control"
+                       placeholder="prenom.nom@ihec.ucar.tn"
+                       pattern="^[A-Za-z0-9._%+-]+@ihec\.ucar\.tn$" required>
+                <div class="form-hint">Obligatoirement @ihec.ucar.tn</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="telephone">Téléphone</label>
+                <input type="tel" id="telephone" name="telephone" class="form-control"
+                       placeholder="55 123 456" pattern="[0-9 ]{8,14}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" class="form-control"
+                       placeholder="Mot de passe" required>
+                <div class="password-hints">
+                    <strong>Votre mot de passe doit contenir :</strong>
+                    <ul>
+                        <li>Au moins 8 caractères</li>
+                        <li>Au moins 1 lettre majuscule</li>
+                        <li>Au moins 1 chiffre</li>
+                        <li>Au moins 1 caractère spécial (@, #, !, etc.)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="flex items-center gap-8">
+                    <input type="checkbox" id="cgu" required>
+                    J'accepte les <a href="#" class="text-primary fw-bold">conditions d'utilisation</a> et la politique de confidentialité.
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Créer mon compte</button>
+        </form>
+
+        <div class="auth-footer">
+            Vous avez déjà un compte ? <a href="login.html">Se connecter</a>
+        </div>
+    </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+let selectedRole = 'PASSAGER';
+document.querySelectorAll('.role-option').forEach(el => {
+    el.addEventListener('click', () => {
+        document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedRole = el.dataset.role;
+    });
+});
+
+document.getElementById('registerForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const alertBox = document.getElementById('alertBox');
+    alertBox.innerHTML = '';
+
+    const data = {
+        prenom:    document.getElementById('prenom').value.trim(),
+        nom:       document.getElementById('nom').value.trim(),
+        email:     document.getElementById('email').value.trim(),
+        telephone: document.getElementById('telephone').value.trim(),
+        motDePasse: document.getElementById('password').value,
+        role:      selectedRole
+    };
+
+    if (!/^[A-Za-z0-9._%+-]+@ihec\.ucar\.tn$/.test(data.email)) {
+        alertBox.innerHTML = '<div class="alert alert-danger">Votre email doit se terminer par @ihec.ucar.tn</div>';
+        return;
+    }
+    const strong = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!strong.test(data.motDePasse)) {
+        alertBox.innerHTML = '<div class="alert alert-danger">Mot de passe : minimum 8 caractères avec majuscule, chiffre et caractère spécial.</div>';
+        return;
+    }
+
+    try {
+        const r = await apiPost('/api/register', data);
+        if (r.success === true || r.success === 'true') {
+            Auth.save(r);
+            alertBox.innerHTML = '<div class="alert alert-success">Inscription réussie. Redirection.</div>';
+            setTimeout(() => {
+                if (data.role === 'CONDUCTEUR') location.href = 'conducteur/home.html';
+                else location.href = 'passager/home.html';
+            }, 1000);
+            return;
+        }
+        alertBox.innerHTML = '<div class="alert alert-danger">Impossible de créer le compte : ' + (r.message || 'erreur inconnue') + '.</div>';
+    } catch (err) {
+        alertBox.innerHTML = '<div class="alert alert-danger">Impossible de créer le compte : ' + (err.message || 'serveur indisponible') + '.</div>';
+    }
+});
+</script>
+
+</body>
+</html>

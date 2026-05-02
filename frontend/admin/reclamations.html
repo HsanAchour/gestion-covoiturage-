@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réclamations | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-theme">
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Réclamations</h1>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card red"><div class="kpi-value" id="ouvert">0</div><div class="kpi-label">Ouvertes</div></div>
+            <div class="kpi-card yellow"><div class="kpi-value" id="traitement">0</div><div class="kpi-label">En traitement</div></div>
+            <div class="kpi-card green"><div class="kpi-value" id="cloture">0</div><div class="kpi-label">Clôturées</div></div>
+            <div class="kpi-card"><div class="kpi-value" id="tempsRep">0 h</div><div class="kpi-label">Temps de réponse moyen</div></div>
+        </div>
+
+        <div class="flex gap-16 mb-24">
+            <button class="btn btn-primary btn-sm" onclick="filtrer('all')">Toutes</button>
+            <button class="btn btn-outline btn-sm" onclick="filtrer('OUVERT')">Ouvertes</button>
+            <button class="btn btn-outline btn-sm" onclick="filtrer('EN_TRAITEMENT')">En traitement</button>
+            <button class="btn btn-outline btn-sm" onclick="filtrer('CLOTURE')">Clôturées</button>
+        </div>
+
+        <div id="recList" class="grid"></div>
+    </main>
+</div>
+
+<!-- Modal réponse -->
+<div id="modal" class="modal hidden">
+    <div class="modal-content">
+        <button class="modal-close" onclick="fermerModal()">×</button>
+        <h2 style="color:var(--ihec-blue-dark); margin-bottom:16px;">Répondre à la réclamation</h2>
+        <div id="modalDetails"></div>
+        <div class="form-group mt-16">
+            <label class="form-label">Votre réponse</label>
+            <textarea id="reponse" class="form-control" rows="6" placeholder="Rédigez une réponse détaillée."></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Nouveau statut</label>
+            <select id="statut" class="form-control">
+                <option value="EN_TRAITEMENT">En traitement</option>
+                <option value="CLOTURE">Clôturée</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="envoyerReponse()">Envoyer la réponse</button>
+    </div>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('ADMIN');
+renderSidebar('sidebar', 'ADMIN', 'reclamations.html');
+
+let filter = 'all';
+let editingId = null;
+
+function render() {
+    const all = MOCK.reclamations || [];
+    const list = all.filter(r => filter === 'all' || r.statut === filter);
+
+    document.getElementById('ouvert').textContent = all.filter(r => r.statut === 'OUVERT').length;
+    document.getElementById('traitement').textContent = all.filter(r => r.statut === 'EN_TRAITEMENT').length;
+    document.getElementById('cloture').textContent = all.filter(r => r.statut === 'CLOTURE').length;
+
+    const el = document.getElementById('recList');
+    if (list.length === 0) {
+        el.innerHTML = '<p class="text-center text-muted" style="padding:40px;">Aucune réclamation.</p>';
+        return;
+    }
+    el.innerHTML = list.map(r => `
+        <div class="admin-card">
+            <div class="flex justify-between items-center mb-16">
+                <div>
+                    <div class="fw-bold" style="font-size:17px;">${r.type} · #${r.id}</div>
+                    <div class="text-muted" style="font-size:13px;">Par <strong>${r.declarantNom}</strong> · ${r.date}</div>
+                </div>
+                <span class="status-tag status-${r.statut}">${r.statut.replace('_',' ')}</span>
+            </div>
+            <div style="padding:14px; background:var(--bg-gray); border-radius:10px; margin-bottom:16px;">
+                <p>${r.description}</p>
+            </div>
+            <div class="flex gap-16">
+                ${r.statut !== 'CLOTURE' ? `<button class="btn btn-primary btn-sm" onclick="repondre(${r.id})">Répondre</button>` : ''}
+                <button class="btn btn-outline btn-sm" onclick="messager('${r.declarantNom}')">Contacter</button>
+                ${r.statut !== 'CLOTURE' ? `<button class="btn btn-success btn-sm" onclick="cloturer(${r.id})">Clôturer</button>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function filtrer(f) { filter = f; render(); }
+
+function repondre(id) {
+    editingId = id;
+    const r = MOCK.reclamations.find(x => x.id === id);
+    document.getElementById('modalDetails').innerHTML = `
+        <div style="padding:14px; background:var(--bg-gray); border-radius:10px;">
+            <div class="fw-bold mb-8">${r.type} · ${r.declarantNom}</div>
+            <p class="text-muted">${r.description}</p>
+        </div>
+    `;
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function fermerModal() { document.getElementById('modal').classList.add('hidden'); }
+
+function envoyerReponse() {
+    const r = MOCK.reclamations.find(x => x.id === editingId);
+    if (r) r.statut = document.getElementById('statut').value;
+    alert('Réponse envoyée au déclarant.');
+    fermerModal();
+    render();
+}
+
+function cloturer(id) {
+    if (!confirm('Clôturer cette réclamation ?')) return;
+    const r = MOCK.reclamations.find(x => x.id === id);
+    if (r) r.statut = 'CLOTURE';
+    render();
+}
+
+function messager(nom) { location.href = 'messagerie.html'; }
+
+render();
+</script>
+
+<style>
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+.modal-content { background:white; border-radius:var(--radius-lg); padding:32px; max-width:640px; width:100%; max-height:90vh; overflow-y:auto; position:relative; }
+.modal-close { position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; background:var(--bg-gray); font-size:22px; cursor:pointer; border:none; }
+</style>
+
+</body>
+</html>

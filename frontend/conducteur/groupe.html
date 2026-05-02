@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groupes de trajet | IHEC Ride</title>
+    <link rel="icon" href="../assets/images/logo.jpeg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Groupes de trajet</h1>
+            <a href="notifications.html" class="notification-bell"><span class="bell-icon">•</span><span class="dot"></span></a>
+        </div>
+
+        <div class="alert alert-info mb-24">
+            Vous êtes l'administrateur de vos groupes. Chaque trajet crée automatiquement un groupe dès qu'un passager est accepté.
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-list" id="groupList"></div>
+            <div class="chat-main">
+                <div class="chat-header">
+                    <div class="avatar" style="background:var(--bg-gray); color:var(--text-muted);">—</div>
+                    <div>
+                        <div class="fw-bold">Aucun groupe sélectionné</div>
+                        <div class="text-muted" style="font-size:12px;">Sélectionnez un groupe à gauche</div>
+                    </div>
+                </div>
+                <div class="chat-messages" id="grpMsgs">
+                    <p class="text-muted text-center" style="padding:40px;">Aucun message.</p>
+                </div>
+                <form class="chat-input" onsubmit="event.preventDefault(); envoyerGroupe();">
+                    <input type="text" id="grpInput" class="form-control" placeholder="Message au groupe">
+                    <button class="btn btn-primary">Envoyer</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/common.js"></script>
+<script>
+Auth.requireRole('CONDUCTEUR');
+renderSidebar('sidebar', 'CONDUCTEUR', 'groupe.html');
+
+const groupes = MOCK.groupes || [];
+const el = document.getElementById('groupList');
+if (groupes.length === 0) {
+    el.innerHTML = '<p class="text-muted text-center" style="padding:30px;">Aucun groupe.</p>';
+} else {
+    el.innerHTML = groupes.map(g => `
+        <div class="chat-item">
+            <div class="avatar" style="background:linear-gradient(135deg,var(--ihec-blue),var(--ihec-blue-light)); color:white;">G</div>
+            <div class="chat-info">
+                <div class="name">${g.nom}</div>
+                <div class="last">${g.membres} membres</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function envoyerGroupe() {
+    const input = document.getElementById('grpInput');
+    const txt = input.value.trim();
+    if (!txt) return;
+    const box = document.getElementById('grpMsgs');
+    if (box.querySelector('p.text-muted')) box.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'chat-bubble sent';
+    div.innerHTML = txt + '<span class="time">' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + '</span>';
+    box.appendChild(div);
+    input.value = '';
+    box.scrollTop = box.scrollHeight;
+}
+</script>
+
+</body>
+</html>
